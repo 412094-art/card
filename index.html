@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>神祕復古塔羅 - AI 占卜師</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --vintage-paper: #e6d5b8;
+            --mystic-dark: #1a1612;
+            --mystic-gold: #c5a059;
+        }
+
+        body {
+            background-color: var(--mystic-dark);
+            color: var(--vintage-paper);
+            font-family: 'Noto Serif TC', serif;
+            background-image: radial-gradient(circle, #2c241e 0%, #1a1612 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .vintage-filter {
+            filter: sepia(0.6) contrast(1.1) brightness(0.9);
+        }
+
+        .card {
+            aspect-ratio: 2/3.5;
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            cursor: pointer;
+            position: absolute;
+            transform-style: preserve-3d;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            transition: transform 0.8s;
+            transform-style: preserve-3d;
+        }
+
+        .card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 8px;
+            border: 2px solid var(--mystic-gold);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .card-back {
+            background: linear-gradient(135deg, #2c241e 0%, #4a3b2f 100%);
+            background-image: url('https://www.transparenttextures.com/patterns/dark-leather.png');
+        }
+
+        .card-back::after {
+            content: '✧';
+            font-size: 2rem;
+            color: var(--mystic-gold);
+        }
+
+        .card-front {
+            background: var(--vintage-paper);
+            transform: rotateY(180deg);
+            overflow: hidden;
+        }
+
+        .card-front img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: sepia(0.5);
+        }
+
+        .typewriter {
+            white-space: pre-wrap;
+            overflow: hidden;
+            line-height: 1.8;
+        }
+
+        .pile-area {
+            height: 200px;
+            position: relative;
+            margin: 40px 0;
+        }
+
+        .btn-mystic {
+            background: transparent;
+            border: 1px solid var(--mystic-gold);
+            color: var(--mystic-gold);
+            padding: 8px 24px;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-radius: 2px;
+        }
+
+        .btn-mystic:hover:not(:disabled) {
+            background: var(--mystic-gold);
+            color: var(--mystic-dark);
+            box-shadow: 0 0 15px var(--mystic-gold);
+        }
+
+        .btn-mystic:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        input, textarea {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid #4a3b2f;
+            color: var(--vintage-paper);
+            padding: 10px;
+            border-radius: 4px;
+            width: 100%;
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--mystic-gold);
+        }
+
+        .slot-title {
+            font-family: 'Playfair Display', serif;
+            color: var(--mystic-gold);
+            font-style: italic;
+            font-size: 0.9rem;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(197, 160, 89, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--mystic-gold);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto">
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-6xl font-bold mb-2 tracking-widest text-amber-600">TAROT ORACLE</h1>
+            <p class="italic opacity-60">由冷靜客觀的 AI 分析師引導您的靈魂</p>
+        </header>
+
+        <main class="space-y-12">
+            <!-- 設定區 -->
+            <section id="setup-section" class="grid grid-cols-1 md:grid-cols-2 gap-8 bg-stone-900/40 p-6 rounded-lg border border-white/5">
+                <div class="flex flex-col gap-4">
+                    <label class="text-sm font-bold opacity-70">您的問題</label>
+                    <textarea id="user-question" rows="3" placeholder="例如：我接下來三個月的事業發展如何？"></textarea>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] opacity-50 uppercase">位置一定義</label>
+                        <input type="text" id="slot-1-def" value="過去" class="text-xs">
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] opacity-50 uppercase">位置二定義</label>
+                        <input type="text" id="slot-2-def" value="現在" class="text-xs">
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        <label class="text-[10px] opacity-50 uppercase">位置三定義</label>
+                        <input type="text" id="slot-3-def" value="未來" class="text-xs">
+                    </div>
+                </div>
+            </section>
+
+            <!-- 舞台區 -->
+            <section class="text-center">
+                <div id="instruction" class="mb-4 text-amber-200/70 animate-pulse font-light tracking-widest">請移動滑鼠在牌堆上洗牌...</div>
+                
+                <div id="main-deck" class="pile-area flex justify-center items-center">
+                    <!-- 卡牌由 JS 生成 -->
+                </div>
+
+                <div id="action-controls" class="hidden flex flex-col items-center gap-4">
+                    <div class="flex gap-4">
+                        <button id="cut-btn" onclick="startCutting()" class="btn-mystic">進行切牌</button>
+                        <button id="draw-btn" onclick="drawCards()" class="btn-mystic hidden">揭開預言</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 展示區 -->
+            <section id="spread-area" class="grid grid-cols-3 gap-4 min-h-[300px] opacity-0 transition-opacity duration-1000">
+                <div class="flex flex-col items-center gap-4">
+                    <div id="slot-1" class="w-full max-w-[150px] relative aspect-[2/3.5] border border-dashed border-white/10 rounded-lg flex items-center justify-center"></div>
+                    <span id="slot-1-label" class="slot-title"></span>
+                </div>
+                <div class="flex flex-col items-center gap-4">
+                    <div id="slot-2" class="w-full max-w-[150px] relative aspect-[2/3.5] border border-dashed border-white/10 rounded-lg flex items-center justify-center"></div>
+                    <span id="slot-2-label" class="slot-title"></span>
+                </div>
+                <div class="flex flex-col items-center gap-4">
+                    <div id="slot-3" class="w-full max-w-[150px] relative aspect-[2/3.5] border border-dashed border-white/10 rounded-lg flex items-center justify-center"></div>
+                    <span id="slot-3-label" class="slot-title"></span>
+                </div>
+            </section>
+
+            <!-- AI 解說區 -->
+            <section id="ai-section" class="hidden bg-stone-950/40 p-8 rounded-lg border border-amber-900/30 shadow-2xl relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-1 h-full bg-amber-600/50"></div>
+                <h3 class="text-xl font-bold mb-6 flex items-center gap-3">
+                    <span class="text-amber-500">◈</span> AI 分析師深度解讀
+                </h3>
+                <div id="ai-response" class="typewriter text-amber-100/90 italic"></div>
+                <div id="loading-spinner" class="hidden mt-6">
+                    <div class="flex items-center gap-3 text-amber-500/80">
+                        <div class="spinner"></div>
+                        <span class="text-sm italic tracking-widest">連結集體意識中...</span>
+                    </div>
+                </div>
+                <div id="error-box" class="hidden mt-4 p-4 border border-red-900/50 bg-red-950/20 text-red-400 text-sm"></div>
+            </section>
+        </main>
+
+        <footer class="mt-20 py-8 text-center text-[10px] uppercase tracking-[0.3em] opacity-30 border-t border-white/5">
+            © 靈性分析儀 - 純前端復古塔羅系統
+        </footer>
+    </div>
+
+    <script>
+        const apiKey = ""; // 在此環境中由系統自動注入
+        const tarotData = [
+            "愚者", "魔術師", "女祭司", "女皇", "皇帝", "教皇", "戀人", "戰車", 
+            "力量", "隱者", "命運之輪", "正義", "倒吊人", "死神", "節制", "惡魔", 
+            "塔", "星星", "月亮", "太陽", "審判", "世界",
+            "權杖一", "權杖二", "權杖三", "權杖四", "權杖五", "權杖六", "權杖七", "權杖八", "權杖九", "權杖十", "權杖侍者", "權杖騎士", "權杖皇后", "權杖國王",
+            "聖杯一", "聖杯二", "聖杯三", "聖杯四", "聖杯五", "聖杯六", "聖杯七", "聖杯八", "聖杯九", "聖杯十", "聖杯侍者", "聖杯騎士", "聖杯皇后", "聖杯國王",
+            "寶劍一", "寶劍二", "寶劍三", "寶劍四", "寶劍五", "寶劍六", "寶劍七", "寶劍八", "寶劍九", "寶劍十", "寶劍侍者", "寶劍騎士", "寶劍皇后", "寶劍國王",
+            "錢幣一", "錢幣二", "錢幣三", "錢幣四", "錢幣五", "錢幣六", "錢幣七", "錢幣八", "錢幣九", "錢幣十", "錢幣侍者", "錢幣騎士", "錢幣皇后", "錢幣國王"
+        ];
+
+        let deck = [];
+        let state = 'shuffling'; 
+        let drawnCards = [];
+        let shuffleCount = 0;
+
+        window.onload = () => {
+            initDeck();
+        };
+
+        function initDeck() {
+            const container = document.getElementById('main-deck');
+            container.innerHTML = '';
+            deck = [];
+            
+            // 生成 22 張大牌作為示範堆
+            for (let i = 0; i < 22; i++) {
+                const cardEl = document.createElement('div');
+                cardEl.className = 'card w-24 md:w-32';
+                cardEl.innerHTML = `<div class="card-inner"><div class="card-back"></div></div>`;
+                cardEl.style.zIndex = i;
+                cardEl.style.transform = `translateX(-50%) translate(${i * 0.3}px, ${i * 0.3}px)`;
+                
+                cardEl.addEventListener('mousemove', (e) => {
+                    if (state === 'shuffling') {
+                        const x = (Math.random() - 0.5) * 80;
+                        const y = (Math.random() - 0.5) * 80;
+                        const r = (Math.random() - 0.5) * 40;
+                        cardEl.style.transform = `translateX(-50%) translate(${x}px, ${y}px) rotate(${r}deg)`;
+                        shuffleCount++;
+                        if (shuffleCount > 120) {
+                            document.getElementById('instruction').innerText = '牌組已洗淨，請準備切牌';
+                            document.getElementById('action-controls').classList.remove('hidden');
+                        }
+                    }
+                });
+
+                container.appendChild(cardEl);
+                deck.push({ id: i, name: tarotData[i], el: cardEl });
+            }
+        }
+
+        function startCutting() {
+            state = 'cutting';
+            document.getElementById('cut-btn').classList.add('hidden');
+            const container = document.getElementById('main-deck');
+            const cards = Array.from(container.children);
+            
+            cards.forEach((card, idx) => {
+                let targetX = '-50%';
+                if (idx < cards.length / 3) targetX = '-180%';
+                else if (idx > cards.length * 2/3) targetX = '80%';
+                card.style.transform = `translateX(${targetX}) translateY(30px) rotate(0deg)`;
+            });
+
+            setTimeout(() => {
+                document.getElementById('instruction').innerText = '連結完成，請揭開預言';
+                document.getElementById('draw-btn').classList.remove('hidden');
+            }, 800);
+        }
+
+        async function drawCards() {
+            state = 'ready';
+            document.getElementById('draw-btn').disabled = true;
+            document.getElementById('main-deck').classList.add('hidden');
+            document.getElementById('spread-area').classList.remove('opacity-0');
+            
+            const shuffled = [...tarotData].sort(() => Math.random() - 0.5);
+            drawnCards = shuffled.slice(0, 3).map(name => ({
+                name: name,
+                isReversed: Math.random() > 0.7
+            }));
+
+            const slots = ['slot-1', 'slot-2', 'slot-3'];
+            for (let i = 0; i < 3; i++) {
+                const defValue = document.getElementById(`slot-${i+1}-def`).value;
+                document.getElementById(`slot-${i+1}-label`).innerText = defValue;
+                drawnCards[i].slotDef = defValue;
+
+                const slot = document.getElementById(slots[i]);
+                const cardContent = `
+                    <div class="card w-full h-full flipped relative">
+                        <div class="card-inner">
+                            <div class="card-back"></div>
+                            <div class="card-front flex flex-col items-center p-4 text-center justify-between">
+                                <div class="text-[10px] opacity-40 tracking-widest uppercase">Arcana</div>
+                                <div class="text-4xl my-2">${getSymbol(drawnCards[i].name)}</div>
+                                <div class="font-bold text-sm ${drawnCards[i].isReversed ? 'rotate-180' : ''}">${drawnCards[i].name}</div>
+                                <div class="text-[10px] italic text-amber-700">${drawnCards[i].isReversed ? 'REVERSED' : 'UPRIGHT'}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                slot.innerHTML = cardContent;
+                await new Promise(r => setTimeout(r, 600));
+            }
+
+            requestAIAnalysis();
+        }
+
+        function getSymbol(name) {
+            const symbols = ["🃏", "🪄", "📖", "👑", "⚔️", "⛪", "❤️", "🚜", "🦁", "🕯️", "🎡", "⚖️", "⚓", "💀", "🏺", "😈", "🔥", "✨", "🌙", "☀️", "🎺", "🌍"];
+            const idx = tarotData.indexOf(name);
+            return idx !== -1 && idx < symbols.length ? symbols[idx] : "🔮";
+        }
+
+        async function requestAIAnalysis() {
+            const aiSection = document.getElementById('ai-section');
+            const spinner = document.getElementById('loading-spinner');
+            const responseDiv = document.getElementById('ai-response');
+            const errorBox = document.getElementById('error-box');
+
+            aiSection.classList.remove('hidden');
+            spinner.classList.remove('hidden');
+            responseDiv.innerText = '';
+            errorBox.classList.add('hidden');
+
+            const question = document.getElementById('user-question').value || '未特別詢問問題，請進行一般運勢分析。';
+            const cardsString = drawnCards.map(c => `${c.slotDef}為「${c.name} ${c.isReversed ? '逆位' : '正位'}」`).join('，');
+            
+            const systemPrompt = `你是一位冷靜、客觀、邏輯嚴謹的塔羅分析師。請用繁體中文回覆。
+            解析風格：理智、深邃、不帶個人情緒。從象徵學與邏輯角度切入。
+            請根據使用者的問題與牌陣給出具體的見解。`;
+
+            const userPrompt = `使用者提問：${question}\n牌陣結果：${cardsString}\n請以此進行深度解析。`;
+
+            let retries = 5;
+            let delay = 1000;
+
+            async function callApi() {
+                try {
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: userPrompt }] }],
+                            systemInstruction: { parts: [{ text: systemPrompt }] }
+                        })
+                    });
+
+                    if (!response.ok) throw new Error('API連線失敗');
+                    
+                    const data = await response.json();
+                    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    if (!resultText) throw new Error('無法解析回應');
+
+                    spinner.classList.add('hidden');
+                    typeWriter(resultText, responseDiv);
+
+                } catch (error) {
+                    if (retries > 0) {
+                        retries--;
+                        setTimeout(callApi, delay);
+                        delay *= 2;
+                    } else {
+                        spinner.classList.add('hidden');
+                        errorBox.innerText = "分析師暫時無法讀取集體意識，請確認網路連線或稍後再試。";
+                        errorBox.classList.remove('hidden');
+                    }
+                }
+            }
+
+            callApi();
+        }
+
+        function typeWriter(text, element) {
+            let i = 0;
+            function write() {
+                if (i < text.length) {
+                    element.innerText += text.charAt(i);
+                    i++;
+                    setTimeout(write, 40);
+                    if (i % 5 === 0) window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+                }
+            }
+            write();
+        }
+    </script>
+</body>
+</html>
